@@ -1,0 +1,91 @@
+---
+title: "Binomial ANOVA Test on different group"
+author: "Assumption paper"
+format: pdf
+editor: visual
+---
+
+```{r}
+library(tidyverse)
+```
+
+# Test Logistics:
+
+A complete walk-through about the choose of this parameter could be found in the Chi_Review Google doc, but the idea was inspired by the paper at below link:
+
+https://sites.ualberta.ca/\~lkgray/uploads/7/3/6/2/7362679/23\_-\_binomial_anova.pdf
+
+# Data simulation
+
+Here at the simulation stage, where notice that we will be needing to fit a logistic regression based on the binary response variables (0, 1 as non-response and response) , and the only variable we can use to fit such variables is to factorize into different groups and fit them as factors.
+
+Since we are given the response rate and total number of participants in each group, the data is rather easy to simulate without any information loss (for ex. wrong assumption on distribution or similar things):
+
+Let's simulate them here and take a look at the resulting data::
+
+```{r}
+Assumption_1 <- data.frame(
+  Response = sample(c(rep(TRUE, 27), rep(FALSE, 37-27)), 37 ,replace = F)) |>
+  mutate (Group = 'Assumption 1') #double checked
+
+Assumption_2 <- data.frame(
+  Response = sample(c(rep(TRUE, 22), rep(FALSE, 33-22)), 33 ,replace = F)) |>
+  mutate (Group = 'Assumption 2') #double checked
+
+Assumption_3 <- data.frame(
+  Response = sample(c(rep(TRUE, 24), rep(FALSE, 37-24)), 37 ,replace = F)) |>
+  mutate (Group = 'Assumption 3') #double checked
+
+reminder <- data.frame(
+  Response = sample(c(rep(TRUE, 20), rep(FALSE, 30-20)), 30 ,replace = F)) |>
+  mutate (Group = 'Reminder') #double checked
+
+
+
+# combining 
+df <- Reduce(function(x, y) merge(x, y, all=TRUE),
+             list(Assumption_1,Assumption_2,Assumption_3, reminder))  
+# and visualize the first 15
+head(df,15)
+```
+
+At this point of time we have simulated the data we need, next we can move on to the glm model building which is fairly easy.
+
+# GLM (Logistics Model) Fitting:
+
+Let's fit a simple logistic regression model on the factors that we have:
+
+```{r}
+lr_model <- glm(Response ~ as.factor(Group), family = 'binomial', data = df)
+
+summary(lr_model)
+```
+
+Notice that here Residual Deviance does not indicate a goodness of fit due to the fact that our response variable is binary. A complete proof is given below:
+
+![](ref_Binomial%20ANOVA.jpg)
+
+Note that there is no need to worry about the proof at the current stage, it is explanation saved for people to later referred if they encounter questions.
+
+Therefore we will compare it and we can print out the anova table below:
+
+```{r}
+lr.anova= anova(lr_model, test="Chisq") 
+lr.anova
+```
+
+Therefore, by looking at a GLM fitted Binomial ANOVA table,
+
+with the
+
+H0: the means of response between groups are the same i.e.
+
+$\mu_{Assumption 1} = \mu_{Assumption 2} = \mu_{Assumption 3} = \mu_{Reminder}$
+
+where $\mu$ represents the average response rate within the group
+
+H1: at least one of the means of the response rate if different from others.
+
+Therefore on a $\chi^2(df = 3)$ test we have reached a test statistics of 0.6481, with P-value 0.8853, therefore we cannot reject the null hypothesis and hence stating:
+
+**we have no enough information to state that the group averages in response rate between Assumption 1, Assumption 2, Assumption 3, and reminder differed.**
